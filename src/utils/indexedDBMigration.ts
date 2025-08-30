@@ -340,27 +340,37 @@ export async function migrateIndexedDBToUUIDs() {
       `[Migration] Database is version ${currentDBVersion}, need to backup before schema migration`
     );
 
-    // First backup all data
-    await backupDataBeforeMigration();
+    try {
+      // First backup all data
+      await backupDataBeforeMigration();
 
-    // Check if backup was successful
-    const backupStr = localStorage.getItem(BACKUP_KEY);
-    if (!backupStr || backupStr === "{}") {
+      // Check if backup was successful
+      const backupStr = localStorage.getItem(BACKUP_KEY);
+      if (!backupStr || backupStr === "{}") {
+        console.error(
+          "[Migration] Backup failed or is empty, aborting migration"
+        );
+        return;
+      }
+
+      // Now trigger the schema upgrade by opening with new version
+      const { ensureIndexedDBInitialized } = await import("@/utils/indexedDB");
+      await ensureIndexedDBInitialized();
+
+      // Wait a bit for the upgrade to complete
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Restore the backup
+      await restoreBackupAfterMigration();
+    } catch (schemaError) {
       console.error(
-        "[Migration] Backup failed or is empty, aborting migration"
+        "[Migration] Error during schema migration and backup/restore:",
+        schemaError
       );
-      return;
+      console.log(
+        "[Migration] Schema migration failed, but continuing with UUID migration if possible"
+      );
     }
-
-    // Now trigger the schema upgrade by opening with new version
-    const { ensureIndexedDBInitialized } = await import("@/utils/indexedDB");
-    await ensureIndexedDBInitialized();
-
-    // Wait a bit for the upgrade to complete
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    // Restore the backup
-    await restoreBackupAfterMigration();
   }
 
   // Check if migration has already been done

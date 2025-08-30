@@ -4,13 +4,15 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --port $PORT",
+    "dev": "bash scripts/dev.sh",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "generate:icons": "bun run scripts/generate-icon-manifest.ts",
     "generate:wallpapers": "bun run scripts/generate-wallpaper-manifest.ts",
-    "launch-kiosk": "bash scripts/launch-kiosk.sh"
+    "launch-kiosk": "bash scripts/launch-kiosk.sh",
+    "check-esbuild": "bash scripts/check-esbuild.sh",
+    "smoke-test": "node scripts/smoke-tests.js"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.2.12",
