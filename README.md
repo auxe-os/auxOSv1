@@ -162,6 +162,71 @@ The project uses:
 - Lucide icons
 - Vercel for deployment
 
+## Getting started (development)
+
+Quick steps to run the project locally (tested with Bun):
+
+1. Install Bun (if missing) and add it to your PATH:
+
+```bash
+curl -fsSL https://bun.sh/install | bash
+export PATH="$HOME/.bun/bin:$PATH"
+```
+
+2. From the project root, install dependencies:
+
+```bash
+bun install
+```
+
+3. Start the dev server (this repo's `dev` script expects a `PORT` env var):
+
+```bash
+# use the Vite default port locally
+PORT=5173 bun dev
+```
+
+If your environment injects `$PORT` (for example in some cloud/CI), you can omit setting it.
+
+Expose the dev server on the LAN:
+
+```bash
+PORT=5173 bun dev --host
+# or
+PORT=5173 bun dev --host 0.0.0.0
+```
+
+Troubleshooting: esbuild host vs binary mismatch
+- If you see an error like: "Host version \"X\" does not match binary version \"Y\"",
+  reinstall the esbuild package that matches the host version. Example:
+
+```bash
+# check host version
+node -e "console.log(require('esbuild').version)"
+
+# reinstall matching binary (example if host version is 0.25.9)
+bun add esbuild@0.25.9 --dev
+bun install
+PORT=5173 bun dev
+```
+
+Optional helper script (add to `scripts/dev.sh`):
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+# default port if not provided
+PORT="${PORT:-5173}"
+export PATH="$HOME/.bun/bin:$PATH"
+
+bun install
+PORT=$PORT bun dev
+```
+
+Make it executable: `chmod +x scripts/dev.sh` and run `./scripts/dev.sh`.
+
+
 ## Scripts
 
 - `bun dev` - Start development server
