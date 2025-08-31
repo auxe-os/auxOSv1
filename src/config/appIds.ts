@@ -14,6 +14,8 @@ export const appIds = [
   "terminal",
   "control-panels",
   "embed",
+  "picflix",
+  "delorean",
 ] as const;
 
-export type AppId = typeof appIds[number]; 
+export type AppId = typeof appIds[number];

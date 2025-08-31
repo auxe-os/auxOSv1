@@ -1468,7 +1468,7 @@ export function useFileSystem(
   useEffect(() => {
     const syncFileSizesAndTimestamps = async () => {
       // Check if we've already done this sync
-      const syncKey = "ryos:file-size-timestamp-sync-v1";
+      const syncKey = "ryos:file-size-timestamp-sync-v2"; // Updated to v2 to force refresh with new file names
       if (localStorage.getItem(syncKey)) {
         return;
       }
@@ -1533,8 +1533,8 @@ export function useFileSystem(
               const now = Date.now();
               // For default files, use a date in the past
               const isDefaultFile = [
-                "/Documents/README.md",
-                "/Documents/Quick Tips.md",
+                "/Documents/auxe_intel.md",
+                "/Documents/auxe_services.md",
                 "/Images/steve-jobs.png",
                 "/Images/susan-kare.png",
               ].includes(item.path);
