@@ -40,10 +40,10 @@ export const DEFAULT_VIDEOS: Video[] = [
     artist: "Dragonball Z",
   },
   {
-    id: "Ko4V3G4NqII",
-    url: "https://youtu.be/Ko4V3G4NqII",
-    title: "Mac OS X Introduction Part 1 (2000)",
-    artist: "Steve Jobs",
+    id: "GJuYvLPPm0s",
+    url: "https://youtu.be/GJuYvLPPm0s",
+    title: "BAD TIME",
+    artist: "Lil Tecca",
   },
   {
     id: "6-fkYFV7rOY",
