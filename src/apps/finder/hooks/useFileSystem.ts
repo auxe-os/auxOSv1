@@ -319,7 +319,7 @@ export function useFileSystem(
         setLocalCurrentPath(path);
       }
     },
-    [instanceId, finderInstance, updateFinderInstance]
+    [instanceId, finderInstance, updateFinderInstance, finderStore]
   );
 
   const setHistory = useCallback(
@@ -334,7 +334,7 @@ export function useFileSystem(
         setLocalHistory(updater);
       }
     },
-    [instanceId, finderInstance, updateFinderInstance]
+    [instanceId, finderInstance, updateFinderInstance, finderStore]
   );
 
   const setHistoryIndex = useCallback(
@@ -349,7 +349,7 @@ export function useFileSystem(
         setLocalHistoryIndex(updater);
       }
     },
-    [instanceId, finderInstance, updateFinderInstance]
+    [instanceId, finderInstance, updateFinderInstance, finderStore]
   );
 
   const setSelectedFilePath = useCallback(
@@ -360,7 +360,7 @@ export function useFileSystem(
         setLocalSelectedFile(path);
       }
     },
-    [instanceId, finderInstance, updateFinderInstance]
+    [instanceId, finderInstance, updateFinderInstance, finderStore]
   );
 
   // Local UI state (not persisted to store)
@@ -681,7 +681,18 @@ export function useFileSystem(
           displayFiles
         ); // Log final result
       }
-      // 2. Handle Trash Directory (Uses fileStore)
+      // 2. Handle Hidden virtual directory (backed by fileStore) - show any items under /Hidden
+      else if (currentPath === "/Hidden" || currentPath.startsWith("/Hidden/")) {
+        // Use the persistent metadata store to enumerate items under /Hidden.
+        const itemsMetadata = fileStore.getItemsInPath(currentPath);
+        displayFiles = itemsMetadata.map((item) => ({
+          ...item,
+          icon: getFileIcon(item),
+          appId: item.appId,
+          modifiedAt: item.modifiedAt ? new Date(item.modifiedAt) : undefined,
+        }));
+      }
+      // 3. Handle Trash Directory (Uses fileStore)
       else if (currentPath === "/Trash") {
         // Get metadata from the store
         const itemsMetadata = fileStore.getItemsInPath(currentPath);

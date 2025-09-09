@@ -1483,8 +1483,9 @@ export const useChatsStore = create<ChatsStoreState>()(
         },
         clearUnread: (roomId) => {
           set((state) => {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { [roomId]: _removed, ...rest } = state.unreadCounts;
+            const rest = Object.fromEntries(
+              Object.entries(state.unreadCounts).filter(([k]) => k !== roomId)
+            ) as Record<string, number>;
             return { unreadCounts: rest };
           });
         },

@@ -62,9 +62,34 @@
       "type": "directory",
       "icon": "/icons/default/trash-empty.png",
       "status": "active"
+    },
+    {
+      "path": "/Hidden",
+      "name": "Hidden",
+      "isDirectory": true,
+      "type": "directory",
+      "icon": "/icons/default/hidden.png",
+      "status": "active"
+    },
+    {
+      "path": "/Hidden/Secrets",
+      "name": "Secrets",
+      "isDirectory": true,
+      "type": "directory",
+      "icon": "/icons/default/directory.png",
+      "status": "active"
     }
   ],
   "files": [
+    {
+      "path": "/Hidden/Secrets/readme.txt",
+      "name": "readme.txt",
+      "isDirectory": false,
+      "type": "text",
+      "icon": "/icons/default/file-text.png",
+      "status": "active",
+      "content": "This folder contains hidden test files. Keep them secret.\n"
+    },
     {
       "path": "/Documents/auxe_intel.md",
       "name": "auxe_intel.md",

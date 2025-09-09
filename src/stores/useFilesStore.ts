@@ -162,7 +162,7 @@ export const useFilesStore = create<FilesStoreState>()(
 
       addItem: (itemData) => {
         // Add item with default 'active' status and UUID for files
-        const now = Date.now();
+        const now = Date.now(); // Reintroducing 'now' variable
         const newItem: FileSystemItem = {
           ...itemData,
           status: "active",
@@ -714,11 +714,71 @@ export const useFilesStore = create<FilesStoreState>()(
         return (state, error) => {
           if (error) {
             console.error("Error rehydrating files store:", error);
-          } else if (state && state.libraryState === "uninitialized") {
-            // Only auto-initialize if library state is uninitialized
+            return;
+          }
+
+          // If the persisted state indicates the library is uninitialized, initialize it as before.
+          if (state && state.libraryState === "uninitialized") {
             Promise.resolve(state.initializeLibrary()).catch((err) =>
               console.error("Files initialization failed on rehydrate", err)
             );
+            return;
+          }
+
+          // If the library is loaded but /Hidden is missing, read defaults and add any /Hidden entries.
+          if (state && state.libraryState === "loaded" && !state.items["/Hidden"]) {
+            (async () => {
+              try {
+                const res = await fetch("/data/filesystem.json");
+                if (!res.ok) {
+                  console.warn("[FilesStore:onRehydrateStorage] filesystem.json not available");
+                  return;
+                }
+                const data = await res.json();
+                const dirs = Array.isArray(data.directories) ? data.directories : [];
+                const files = Array.isArray(data.files) ? data.files : [];
+
+                // Narrowly-typed filters
+                const hiddenDirs = dirs.filter((d: { path?: string }) => typeof d.path === "string" && d.path.startsWith("/Hidden"));
+                const hiddenFiles = files.filter((f: { path?: string }) => typeof f.path === "string" && f.path.startsWith("/Hidden"));
+
+                if (hiddenDirs.length === 0 && hiddenFiles.length === 0) {
+                  return; // nothing to add
+                }
+
+                const now = Date.now();
+
+                // Use the store's addItem method to ensure UUIDs/timestamps are created consistently
+                hiddenDirs.forEach((dir) => {
+                  // ensure minimal shape expected by addItem
+                  state.addItem({
+                    path: dir.path,
+                    name: dir.name || dir.path.split("/").pop() || "Hidden",
+                    isDirectory: true,
+                    type: dir.type || "directory",
+                    icon: dir.icon,
+                  });
+                });
+
+                hiddenFiles.forEach((file) => {
+                  state.addItem({
+                    path: file.path,
+                    name: file.name || file.path.split("/").pop() || "file",
+                    isDirectory: false,
+                    type: file.type || undefined,
+                    icon: file.icon,
+                  });
+                });
+
+                // After adding metadata, persist default contents into IndexedDB for added files.
+                // We pass the raw file entries (typed) and the current items snapshot so UUIDs are available.
+                await saveDefaultContents(hiddenFiles as unknown as FileSystemItemData[], { ...state.items });
+
+                console.log("[FilesStore:onRehydrateStorage] Patched /Hidden entries into files store during rehydrate.");
+              } catch (err) {
+                console.error("[FilesStore:onRehydrateStorage] Error patching /Hidden on rehydrate:", err);
+              }
+            })();
           }
         };
       },

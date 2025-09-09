@@ -67,6 +67,9 @@ const getAppName = (id?: string): string => {
   return entry?.name || formatToolName(id);
 };
 
+// Secret code and password for hidden folder access
+const SECRET_CODE = "$hidden";
+const SECRET_PASSWORD = "passthyaux";
 // Minimal system state for AI chat requests
 const getSystemState = () => {
   const appStore = useAppStore.getState();
@@ -395,6 +398,9 @@ export function TerminalAppComponent({
   // Track if auto-scrolling is enabled
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
 
+  // State for awaiting password input in terminal
+  const [isAwaitingPassword, setIsAwaitingPassword] = useState(false);
+
   // Reference to track if user is at the bottom
   const isAtBottomRef = useRef(true);
   const hasScrolledRef = useRef(false);
@@ -455,10 +461,9 @@ export function TerminalAppComponent({
   // Initialize with welcome message
   useEffect(() => {
     const currentTime = new Date().toLocaleTimeString();
-    const asciiArt = `     __  __ 
- _  /  \\(_  
-| \\/\\__/__) 
-  /         `;
+    const asciiArt = ` 
+AUXOS
+         `;
 
     setCommandHistory([
       {
@@ -541,6 +546,47 @@ export function TerminalAppComponent({
 
   const handleCommandSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isAwaitingPassword) {
+      const entered = currentCommand.trim();
+      setIsAwaitingPassword(false);
+      if (entered === SECRET_PASSWORD) {
+        setCommandHistory((prev) => [
+          ...prev,
+          {
+            command: "",
+            output: " /Hidden\n cd\n /\n $hidden\n Password: \n Access granted. Opening /Hidden in new finder window...\n",
+            path: currentPath,
+          },
+        ]);
+        launchApp("finder", { initialData: { path: "/Hidden" } });
+      } else {
+        setCommandHistory((prev) => [
+          ...prev,
+          {
+            command: "",
+            output: "Incorrect password.",
+            path: currentPath,
+          },
+        ]);
+      }
+      setCurrentCommand("");
+      return;
+    }
+
+    if (currentCommand.trim() === SECRET_CODE) {
+      setCommandHistory((prev) => [
+        ...prev,
+        {
+          command: currentCommand,
+          output: "Password: ",
+          path: currentPath,
+        },
+      ]);
+      setIsAwaitingPassword(true);
+      setCurrentCommand("");
+      return;
+    }
 
     if (!currentCommand.trim()) return;
 
@@ -2743,7 +2789,7 @@ export function TerminalAppComponent({
             <div className="flex-1 relative">
               <input
                 ref={inputRef}
-                type="text"
+                type={isAwaitingPassword ? "password" : "text"}
                 value={currentCommand}
                 onChange={(e) => setCurrentCommand(e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -2873,3 +2919,4 @@ export function TerminalAppComponent({
 
 // --- Debounce helper copied from useAiChat for insertText tool ---
 // Currently unused. Remove if not needed in the future.
+
