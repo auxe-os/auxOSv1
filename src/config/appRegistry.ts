@@ -14,7 +14,7 @@ import { IpodApp } from "@/apps/ipod";
 import { TerminalApp } from "@/apps/terminal";
 import EmbedApp from "@/apps/embed";
 import DeloreanApp from "@/apps/delorean";
-import PicflixApp from "@/apps/picflix";
+import GOONIFYApp from "@/apps/picflix";
 import { appIds } from "./appIds";
 import type {
   BaseApp,
@@ -164,8 +164,8 @@ export const appRegistry = {
       minSize: { width: 800, height: 600 },
     } as WindowConstraints,
   },
-  [PicflixApp.id]: {
-    ...(PicflixApp as BaseApp<{ url?: string }>),
+  [GOONIFYApp.id]: {
+    ...(GOONIFYApp as BaseApp<{ url?: string }>),
     windowConfig: {
       defaultSize: { width: 1000, height: 700 },
       minSize: { width: 800, height: 600 },

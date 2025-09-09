@@ -34,7 +34,7 @@ function MacDock() {
 
   // Pinned apps on the left side (in order)
   const pinnedLeft: AppId[] = useMemo(
-    () => ["finder", "chats", "internet-explorer", "embed", "delorean", "picflix"] as AppId[],
+  () => ["finder", "chats", "internet-explorer", "embed", "delorean", "goonify"] as AppId[],
     []
   );
 
@@ -416,8 +416,8 @@ function MacDock() {
             <AnimatePresence mode="popLayout" initial={false}>
               {/* Left pinned */}
               {pinnedLeft.map((appId) => {
-                // Use the Paint icon for PICFLIX as requested; otherwise use the app's registered icon
-                const icon = appId === "picflix" ? getAppIconPath("paint") : getAppIconPath(appId);
+                // Use the Paint icon for GOONIFY as requested; otherwise use the app's registered icon
+                const icon = appId === "goonify" ? getAppIconPath("paint") : getAppIconPath(appId);
                 const isOpen = openAppsAllSet.has(appId);
                 const label = appRegistry[appId]?.name ?? appId;
                 return (

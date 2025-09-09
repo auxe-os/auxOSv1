@@ -5,18 +5,18 @@ import { WindowFrame } from "@/components/layout/WindowFrame";
 import { RefreshCw, ExternalLink, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface PicflixInitialData {
+interface GOONIFYInitialData {
   url?: string;
 }
 
-export const PicflixAppComponent: React.FC<AppProps<PicflixInitialData>> = ({
+export const GOONIFYAppComponent: React.FC<AppProps<GOONIFYInitialData>> = ({
   onClose,
   isForeground,
   skipInitialSound,
   instanceId,
   initialData,
 }) => {
-  const defaultUrl = "https://picflix-79538617613.us-west1.run.app";
+  const defaultUrl = "https://goonify-r2t892u6r-jayashiyan-gmailcoms-projects.vercel.app/";
   const fallbackUrl = "https://github.com/auxe-os/auxOSv1"; // Fallback if main site is down
   const currentUrl = initialData?.url || defaultUrl;
   
@@ -85,8 +85,8 @@ export const PicflixAppComponent: React.FC<AppProps<PicflixInitialData>> = ({
 
   return (
     <WindowFrame
-      title="PICFLIX"
-      appId="picflix"
+  title="GOONIFY"
+  appId="goonify"
       onClose={onClose}
       isForeground={isForeground}
       skipInitialSound={skipInitialSound}
@@ -99,7 +99,7 @@ export const PicflixAppComponent: React.FC<AppProps<PicflixInitialData>> = ({
           <div className="absolute inset-0 bg-gray-100 flex items-center justify-center z-10">
             <div className="flex flex-col items-center gap-2">
               <RefreshCw className="h-6 w-6 animate-spin text-gray-500" />
-              <span className="text-sm text-gray-600">Loading PICFLIX...</span>
+              <span className="text-sm text-gray-600">Loading GOONIFY...</span>
             </div>
           </div>
         )}
@@ -111,12 +111,12 @@ export const PicflixAppComponent: React.FC<AppProps<PicflixInitialData>> = ({
               <AlertCircle className="h-12 w-12 text-red-500" />
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Failed to load PICFLIX
+                  Failed to load GOONIFY
                 </h3>
                 <p className="text-sm text-gray-600 mb-4">
                   {url === fallbackUrl 
                     ? "Unable to connect to the service. Please check your internet connection."
-                    : "The PICFLIX website might be temporarily unavailable."
+                    : "The GOONIFY website might be temporarily unavailable."
                   }
                 </p>
                 <div className="flex gap-2">
@@ -147,7 +147,7 @@ export const PicflixAppComponent: React.FC<AppProps<PicflixInitialData>> = ({
         <iframe
           ref={iframeRef}
           src={url}
-          title="PICFLIX"
+          title="GOONIFY"
           className="w-full h-full border-0"
           sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-pointer-lock allow-popups-to-escape-sandbox"
           onLoad={handleLoad}
@@ -158,4 +158,4 @@ export const PicflixAppComponent: React.FC<AppProps<PicflixInitialData>> = ({
   );
 };
 
-export default PicflixAppComponent;
+export default GOONIFYAppComponent;
