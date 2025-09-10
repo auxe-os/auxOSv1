@@ -226,7 +226,7 @@ export function SeekBar({
     handleMouseUp,
   ]);
 
-  if (!isPlaying) return null;
+  if (!isVisible) return null;
 
   return (
     <motion.div
