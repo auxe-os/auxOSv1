@@ -138,6 +138,9 @@ interface VideoStoreState {
   loopCurrent: boolean;
   isShuffled: boolean;
   isPlaying: boolean;
+  // derived caches (not persisted)
+  videoIndexById: Record<string, number>;
+  videoById: Record<string, Video>;
   // actions
   setVideos: (videos: Video[] | ((prev: Video[]) => Video[])) => void;
   setCurrentVideoId: (videoId: string | null) => void;
@@ -162,6 +165,18 @@ const getInitialState = (): VideoStateData => ({
   isPlaying: false,
 });
 
+// Internal helper to build lookup caches
+const buildVideoCaches = (videos: Video[]) => {
+  const videoIndexById: Record<string, number> = {};
+  const videoById: Record<string, Video> = {};
+  for (let i = 0; i < videos.length; i++) {
+    const v = videos[i];
+    videoIndexById[v.id] = i;
+    videoById[v.id] = v;
+  }
+  return { videoIndexById, videoById };
+};
+
 // Capture store setters/getters for use in lifecycle callbacks that don't receive them directly
 let __setRef: ((partial: Partial<VideoStoreState> | ((state: VideoStoreState) => Partial<VideoStoreState>)) => void) | undefined;
 let __getRef: (() => VideoStoreState) | undefined;
@@ -176,6 +191,8 @@ export const useVideoStore = create<VideoStoreState>()(
         return {} as Record<string, never>;
       })(),
       ...getInitialState(),
+      // initialize caches from defaults
+      ...buildVideoCaches(DEFAULT_VIDEOS),
 
       setVideos: (videosOrUpdater) => {
         set((state) => {
@@ -217,9 +234,12 @@ export const useVideoStore = create<VideoStoreState>()(
             }
           } catch {}
 
+          const caches = buildVideoCaches(newVideos);
+
           return {
             videos: newVideos,
             currentVideoId,
+            ...caches,
           };
         });
       },
@@ -240,16 +260,12 @@ export const useVideoStore = create<VideoStoreState>()(
 
       // Derived state helpers
       getCurrentIndex: () => {
-        const state = get();
-        return state.currentVideoId
-          ? state.videos.findIndex((v) => v.id === state.currentVideoId)
-          : -1;
+        const { currentVideoId, videoIndexById } = get();
+        return currentVideoId ? videoIndexById[currentVideoId] ?? -1 : -1;
       },
       getCurrentVideo: () => {
-        const state = get();
-        return state.currentVideoId
-          ? state.videos.find((v) => v.id === state.currentVideoId) || null
-          : null;
+        const { currentVideoId, videoById } = get();
+        return currentVideoId ? videoById[currentVideoId] ?? null : null;
       },
     }),
     {
@@ -260,7 +276,11 @@ export const useVideoStore = create<VideoStoreState>()(
           `Migrating video store to clean ID-based version ${CURRENT_VIDEO_STORE_VERSION}`
         );
         // Always reset to defaults for clean start
-        return getInitialState();
+        const base = getInitialState();
+        return {
+          ...base,
+          ...buildVideoCaches(base.videos),
+        } as any;
       },
       // Persist videos array to prevent ID-based errors
       partialize: (state) => ({
@@ -275,6 +295,10 @@ export const useVideoStore = create<VideoStoreState>()(
         try {
           const vids: Video[] = __getRef?.().videos ?? [];
           const cur: string | null = __getRef?.().currentVideoId ?? null;
+
+          // rebuild caches after load (not persisted)
+          __setRef?.(buildVideoCaches(vids));
+
           if (cur && !vids.some((v) => v.id === cur)) {
             __setRef?.({ currentVideoId: vids.length ? vids[0].id : null });
           }
