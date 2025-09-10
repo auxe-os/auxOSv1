@@ -1,5 +1,6 @@
 import React from "react";
 import { useSound } from "@/hooks/useSound";
+import { SOUNDS } from "@/config/sounds";
 import {
   FaRandom,
   FaRetweet,
@@ -11,28 +12,41 @@ import {
 import {
   IoPlayOutline,
   IoPauseOutline,
-  IoVolumeHighOutline,
-  IoVolumeMuteOutline,
 } from "react-icons/io5";
 import { useVideoStore } from "@/stores/useVideoStore";
 
-const VideoControls: React.FC = () => {
-  const {
-    videos,
-    setCurrentVideoId,
-    getCurrentIndex,
-    isShuffled,
-    setIsShuffled,
-    togglePlay,
-    isPlaying,
-  } = useVideoStore();
+interface VideoControlsProps {
+  isPlaying: boolean;
+  isShuffled: boolean;
+  loopAll: boolean;
+  loopCurrent: boolean;
+  onPlayPause: () => void;
+  onShuffle: () => void;
+  onLoopAll: () => void;
+  onLoopCurrent: () => void;
+  onShare: () => void;
+}
+
+const VideoControls: React.FC<VideoControlsProps> = ({
+  isPlaying,
+  isShuffled,
+  loopAll,
+  loopCurrent,
+  onPlayPause,
+  onShuffle,
+  onLoopAll,
+  onLoopCurrent,
+  onShare,
+}) => {
+  const { setCurrentVideoId } = useVideoStore();
   const { play: playClickSound } = useSound(SOUNDS.CHORD_SUCCESS);
-  const { play: playToggleSound } = useSound(SOUNDS.TOGGLE_SOUND);
 
   const handleNext = () => {
     const { videos, videoIndexById, currentVideoId } = useVideoStore.getState();
-    const currentIndex = videoIndexById[currentVideoId];
-    if (videos.length === 0) return;
+    if (!currentVideoId || videos.length === 0) return;
+    
+    const currentIndex = videoIndexById[currentVideoId] ?? -1;
+    if (currentIndex === -1) return;
 
     let nextIndex;
     if (isShuffled) {
@@ -46,8 +60,10 @@ const VideoControls: React.FC = () => {
 
   const handlePrev = () => {
     const { videos, videoIndexById, currentVideoId } = useVideoStore.getState();
-    const currentIndex = videoIndexById[currentVideoId];
-    if (videos.length === 0) return;
+    if (!currentVideoId || videos.length === 0) return;
+    
+    const currentIndex = videoIndexById[currentVideoId] ?? -1;
+    if (currentIndex === -1) return;
 
     let prevIndex;
     if (isShuffled) {
@@ -59,28 +75,13 @@ const VideoControls: React.FC = () => {
     playClickSound();
   };
 
-  const handleShuffle = () => {
-    setIsShuffled(!isShuffled);
-    playToggleSound();
-  };
-
-  const handleLoopAll = () => {
-    setLoopAll(!loopAll);
-    playToggleSound();
-  };
-
-  const handleLoopCurrent = () => {
-    setLoopCurrent(!loopCurrent);
-    playToggleSound();
-  };
-
   return (
     <div className="flex items-center justify-between p-2 bg-gray-200 dark:bg-gray-800">
       <div className="flex items-center space-x-2">
         <button onClick={handlePrev} className="p-2">
           <FaStepBackward />
         </button>
-        <button onClick={togglePlay} className="p-2">
+        <button onClick={onPlayPause} className="p-2">
           {isPlaying ? <IoPauseOutline size={24} /> : <IoPlayOutline size={24} />}
         </button>
         <button onClick={handleNext} className="p-2">
@@ -89,24 +90,24 @@ const VideoControls: React.FC = () => {
       </div>
       <div className="flex items-center space-x-2">
         <button
-          onClick={handleShuffle}
+          onClick={onShuffle}
           className={`p-2 ${isShuffled ? "text-blue-500" : ""}`}
         >
           <FaRandom />
         </button>
         <button
-          onClick={handleLoopAll}
+          onClick={onLoopAll}
           className={`p-2 ${loopAll ? "text-blue-500" : ""}`}
         >
           <FaRetweet />
         </button>
         <button
-          onClick={handleLoopCurrent}
+          onClick={onLoopCurrent}
           className={`p-2 ${loopCurrent ? "text-blue-500" : ""}`}
         >
           <FaSync />
         </button>
-        <button className="p-2">
+        <button onClick={onShare} className="p-2">
           <FaShareSquare />
         </button>
       </div>

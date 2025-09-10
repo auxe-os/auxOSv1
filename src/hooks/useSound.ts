@@ -192,6 +192,10 @@ export const Sounds = {
   VOLUME_CHANGE: "/sounds/Volume.mp3",
   // iPod sounds
   IPOD_CLICK_WHEEL: "/sounds/WheelsOfTime.m4a",
+  // Menu and UI sounds
+  MENU_SELECT: "/sounds/Click.mp3",
+  CHORD_SUCCESS: "/sounds/Click.mp3",
+  TOGGLE_SOUND: "/sounds/Click.mp3",
 } as const;
 
 // Lazily preload sounds after the first user interaction (click or touch)

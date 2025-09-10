@@ -16,9 +16,8 @@ import { StartMenu } from "./StartMenu";
 import { useAppStoreShallow } from "@/stores/helpers";
 import { Slider } from "@/components/ui/slider";
 import { Volume1, Volume2, VolumeX, Settings, ChevronUp } from "lucide-react";
-import { Sounds } from "@/hooks/useSound";
+import { Sounds, useSound } from "@/hooks/useSound";
 import { useThemeStore } from "@/stores/useThemeStore";
-import { useVideoStore } from "@/stores/useVideoStore";
 
 import { getAppIconPath, appRegistry } from "@/config/appRegistry";
 import { ThemedIcon } from "@/components/shared/ThemedIcon";
@@ -148,7 +147,7 @@ function DefaultMenuItems() {
   const launchApp = useLaunchApp();
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
-  const { play: playSound } = Sounds.MENU_SELECT;
+  const { play: playSound } = useSound(Sounds.MENU_SELECT);
 
   const handleLaunchFinder = (path: string) => {
     launchApp("finder", { initialPath: path });
@@ -448,7 +447,7 @@ function VolumeControl() {
     masterVolume: s.masterVolume,
     setMasterVolume: s.setMasterVolume,
   }));
-  const { play: playVolumeChangeSound } = Sounds.VOLUME_CHANGE;
+  const { play: playVolumeChangeSound } = useSound(Sounds.VOLUME_CHANGE);
   const launchApp = useLaunchApp();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const currentTheme = useThemeStore((state) => state.current);

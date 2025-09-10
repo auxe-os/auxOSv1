@@ -1,10 +1,4 @@
 // src/config/sounds.ts
+// Re-export sounds from useSound hook for backward compatibility
 
-const SOUND_ASSETS = {
-  readonly IPOD_CLICK_WHEEL: "/sounds/WheelsOfTime.m4a",
-} as const;
-
-export const SOUNDS = {
-  ...SOUND_ASSETS,
-  MENU_SELECT: SOUND_ASSETS.CHORD_SUCCESS,
-} as const;
+export { Sounds as SOUNDS } from "@/hooks/useSound";

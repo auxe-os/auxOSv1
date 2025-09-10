@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from "react";
 import YouTube, { YouTubeProps } from "react-youtube";
 import { AppProps } from "../../../types/apps";
 import { useVideoStore } from "../../../stores/useVideoStore";
-import { VideoControls } from "./VideoControls";
+import VideoControls from "./VideoControls";
 import { VideoPlaylist } from "./VideoPlaylist";
 
 export const VideosComponent: React.FC<AppProps> = ({ initialData }) => {
