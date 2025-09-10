@@ -36,42 +36,30 @@ function WallpaperItem({
   previewUrl,
 }: WallpaperItemProps) {
   const { play: playClick } = useSound(Sounds.BUTTON_CLICK, 0.3);
+  const [isThumbLoaded, setIsThumbLoaded] = useState(false);
+  const [thumbError, setThumbError] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isLoading, setIsLoading] = useState(isVideo);
   const displayUrl = previewUrl || path;
+
+  // Derive thumbnail path for videos
+  const getVideoThumbnail = (videoPath: string) => {
+    if (!videoPath.endsWith('.mp4')) return videoPath;
+    return videoPath.replace(/\.mp4$/, '.jpg');
+  };
 
   const handleClick = () => {
     playClick();
     onClick();
+    if (isVideo) setShowVideo(true);
   };
 
   useEffect(() => {
-    if (isVideo && videoRef.current) {
-      if (isSelected) {
-        videoRef.current
-          .play()
-          .catch((err) => console.error("Error playing video:", err));
-      } else {
-        videoRef.current.pause();
-      }
-
-      // Check if video is already cached/loaded
-      if (videoRef.current.readyState >= 3) {
-        // HAVE_FUTURE_DATA or better
-        setIsLoading(false);
-      }
-    }
-  }, [isSelected, isVideo, displayUrl]);
-
-  const handleVideoLoaded = () => {
-    setIsLoading(false);
-  };
-
-  const handleCanPlayThrough = () => {
-    setIsLoading(false);
-  };
+    if (!isSelected && showVideo) setShowVideo(false);
+  }, [isSelected, showVideo]);
 
   if (isVideo) {
+    // Show static thumbnail until selected, then show video. If thumbnail fails, fallback to paused video preview.
     return (
       <div
         className={`w-full aspect-video cursor-pointer hover:opacity-90 ${
@@ -79,36 +67,51 @@ function WallpaperItem({
         } relative overflow-hidden`}
         onClick={handleClick}
       >
-        {isLoading && (
-          <div className="absolute inset-0 bg-gray-700/30">
-            <div
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-50"
-              style={{
-                backgroundSize: "200% 100%",
-                animation: "shimmer 2.5s infinite ease-in-out",
-              }}
-            />
-          </div>
+        {!showVideo && !thumbError && (
+          <img
+            src={getVideoThumbnail(displayUrl)}
+            alt="Video wallpaper thumbnail"
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="lazy"
+            style={{ opacity: isThumbLoaded ? 1 : 0, transition: 'opacity 0.3s' }}
+            onLoad={() => setIsThumbLoaded(true)}
+            onError={() => setThumbError(true)}
+            draggable={false}
+          />
         )}
-        <video
-          ref={videoRef}
-          className="absolute inset-0 w-full h-full object-cover"
-          src={displayUrl}
-          loop
-          muted
-          playsInline
-          onLoadedData={handleVideoLoaded}
-          onCanPlayThrough={handleCanPlayThrough}
-          style={{
-            objectPosition: "center center",
-            opacity: isLoading ? 0 : 1,
-            transition: "opacity 0.5s ease-in-out",
-          }}
-        />
+        {(!showVideo && thumbError) && (
+          <video
+            ref={videoRef}
+            className="absolute inset-0 w-full h-full object-cover"
+            src={displayUrl}
+            loop={false}
+            muted
+            playsInline
+            preload="metadata"
+            style={{ objectPosition: 'center center', opacity: 1, transition: 'opacity 0.5s' }}
+            poster=""
+          />
+        )}
+        {showVideo && (
+          <video
+            ref={videoRef}
+            className="absolute inset-0 w-full h-full object-cover"
+            src={displayUrl}
+            loop
+            muted
+            playsInline
+            autoPlay
+            style={{ objectPosition: 'center center', opacity: 1, transition: 'opacity 0.5s' }}
+          />
+        )}
+        {!isThumbLoaded && !showVideo && !thumbError && (
+          <div className="absolute inset-0 bg-gray-700/30 animate-pulse" />
+        )}
       </div>
     );
   }
 
+  // Non-video: show as before
   return (
     <div
       className={`w-full ${

@@ -45,6 +45,9 @@ interface VideosMenuBarProps {
   isShuffled: boolean;
   onFullScreen: () => void;
   onShareVideo: () => void;
+  // New: toggle visibility of the in-window UI (controls, seekbar, lcd)
+  isUiVisible?: boolean;
+  onToggleUiVisibility?: () => void;
 }
 
 export function VideosMenuBar({
@@ -70,6 +73,8 @@ export function VideosMenuBar({
   isShuffled,
   onFullScreen,
   onShareVideo,
+  isUiVisible,
+  onToggleUiVisibility,
 }: VideosMenuBarProps) {
   const currentTheme = useThemeStore((state) => state.current);
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
@@ -92,6 +97,15 @@ export function VideosMenuBar({
 
   return (
     <MenuBar inWindowFrame={isXpTheme}>
+      {/* Direct UI toggle button on the menu bar for quick access */}
+      <Button
+        variant="ghost"
+        size="default"
+        onClick={() => onToggleUiVisibility && onToggleUiVisibility()}
+        className="h-6 text-md px-2 py-1 border-none hover:bg-gray-200 active:bg-gray-900 active:text-white focus-visible:ring-0"
+      >
+        {isUiVisible ? "Hide UI" : "Show UI"}
+      </Button>
       {/* File Menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -146,6 +160,15 @@ export function VideosMenuBar({
           >
             {isPlaying ? "Pause" : "Play"}
           </DropdownMenuItem>
+            {/* Toggle UI visibility */}
+            <DropdownMenuItem
+              onClick={() => onToggleUiVisibility && onToggleUiVisibility()}
+              className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+            >
+              <span className={cn(!isUiVisible && "pl-4")}>
+                {isUiVisible ? "Hide UI" : "Show UI"}
+              </span>
+            </DropdownMenuItem>
           <DropdownMenuItem
             onClick={onPrevious}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"

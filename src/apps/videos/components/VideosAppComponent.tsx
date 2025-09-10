@@ -346,6 +346,7 @@ export function VideosAppComponent({
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [duration, setDuration] = useState(0);
   const [playedSeconds, setPlayedSeconds] = useState(0);
+  const [isUiVisible, setIsUiVisible] = useState(true);
   const [isVideoHovered, setIsVideoHovered] = useState(false);
   const [isDraggingSeek, setIsDraggingSeek] = useState(false);
   const [dragSeekTime, setDragSeekTime] = useState(0);
@@ -1009,6 +1010,8 @@ export function VideosAppComponent({
       isShuffled={isShuffled}
       onFullScreen={handleFullScreen}
       onShareVideo={handleShareVideo}
+      isUiVisible={isUiVisible}
+      onToggleUiVisibility={() => setIsUiVisible((v) => !v)}
     />
   );
 
@@ -1032,11 +1035,14 @@ export function VideosAppComponent({
           <div className="flex-1 relative">
             {videos.length > 0 ? (
               <div
-                className="w-full h-full overflow-hidden relative"
+                className={cn(
+                  "w-full h-full overflow-hidden relative",
+                  !isUiVisible && "h-full"
+                )}
                 onMouseEnter={() => setIsVideoHovered(true)}
                 onMouseLeave={() => setIsVideoHovered(false)}
               >
-                <div className="w-full h-[calc(100%+120px)] mt-[-60px] relative">
+                <div className={cn("w-full relative", !isUiVisible ? "h-full" : "h-[calc(100%+120px)] mt-[-60px]")}>                
                   <ReactPlayer
                     ref={playerRef}
                     url={getCurrentVideo()?.url || ""}
@@ -1095,22 +1101,24 @@ export function VideosAppComponent({
                     onPointerCancel={handleOverlayPointerCancel}
                   />
                 </div>
-                {/* SeekBar positioned at the bottom (z-30) - moved outside oversized container */}
-                <div className="absolute bottom-0 left-0 right-0 z-30">
-                  <SeekBar
-                    duration={duration}
-                    currentTime={playedSeconds}
-                    onSeek={handleSeek}
-                    isPlaying={isPlaying}
-                    isHovered={isVideoHovered}
-                    onDragChange={(isDragging, seekTime) => {
-                      setIsDraggingSeek(isDragging);
-                      if (seekTime !== undefined) {
-                        setDragSeekTime(seekTime);
-                      }
-                    }}
-                  />
-                </div>
+                {/* SeekBar positioned at the bottom (z-30) - only show when UI is visible */}
+                {isUiVisible && (
+                  <div className="absolute bottom-0 left-0 right-0 z-30">
+                    <SeekBar
+                      duration={duration}
+                      currentTime={playedSeconds}
+                      onSeek={handleSeek}
+                      isPlaying={isPlaying}
+                      isHovered={isVideoHovered}
+                      onDragChange={(isDragging, seekTime) => {
+                        setIsDraggingSeek(isDragging);
+                        if (seekTime !== undefined) {
+                          setDragSeekTime(seekTime);
+                        }
+                      }}
+                    />
+                  </div>
+                )}
                 {/* Status Display (z-40) - moved outside oversized container */}
                 <AnimatePresence>
                   {statusMessage && (
@@ -1139,240 +1147,242 @@ export function VideosAppComponent({
             )}
           </div>
 
-          {/* Retro CD Player Controls */}
-          <div
-            className={cn(
-              "p-4 bg-[#2a2a2a] border-t border-[#3a3a3a] flex flex-col gap-4",
-              "os-toolbar-texture"
-            )}
-          >
-            {/* LCD Display */}
-            <div className="videos-lcd bg-black py-2 px-4 flex items-center justify-between w-full">
-              <div className="flex items-center gap-8">
-                <div
-                  className={cn(
-                    "font-geneva-12 text-[10px] transition-colors duration-300",
-                    isPlaying ? "text-[#ff00ff]" : "text-gray-600"
-                  )}
-                >
-                  <div>Track</div>
-                  <div className="text-xl">
-                    <AnimatedNumber number={getCurrentIndex() + 1} />
-                  </div>
-                </div>
-                <div
-                  className={cn(
-                    "font-geneva-12 text-[10px] transition-colors duration-300",
-                    isPlaying ? "text-[#ff00ff]" : "text-gray-600"
-                  )}
-                >
-                  <div>Time</div>
-                  <div className="text-xl">
-                    {formatTime(
-                      isDraggingSeek ? Math.floor(dragSeekTime) : elapsedTime
+          {/* Retro CD Player Controls - hide when UI is toggled off */}
+          {isUiVisible && (
+            <div
+              className={cn(
+                "p-4 bg-[#2a2a2a] border-t border-[#3a3a3a] flex flex-col gap-4",
+                "os-toolbar-texture"
+              )}
+            >
+              {/* LCD Display */}
+              <div className="videos-lcd bg-black py-2 px-4 flex items-center justify-between w-full">
+                <div className="flex items-center gap-8">
+                  <div
+                    className={cn(
+                      "font-geneva-12 text-[10px] transition-colors duration-300",
+                      isPlaying ? "text-[#ff00ff]" : "text-gray-600"
                     )}
+                  >
+                    <div>Track</div>
+                    <div className="text-xl">
+                      <AnimatedNumber number={getCurrentIndex() + 1} />
+                    </div>
                   </div>
-                </div>
-              </div>
-              <div className="relative overflow-hidden flex-1 px-2">
-                <div
-                  className={cn(
-                    "font-geneva-12 text-[10px] transition-colors duration-300 mb-[3px] pl-2",
-                    isPlaying ? "text-[#ff00ff]" : "text-gray-600"
-                  )}
-                >
-                  Title
-                </div>
-                {videos.length > 0 && (
-                  <div className="relative overflow-hidden">
-                    <AnimatedTitle
-                      title={
-                        getCurrentVideo()?.artist
-                          ? `${getCurrentVideo()?.title} - ${
-                              getCurrentVideo()?.artist
-                            }`
-                          : getCurrentVideo()?.title || ""
-                      }
-                      direction={animationDirection}
-                      isPlaying={isPlaying}
-                    />
-                    {/* Fade effects */}
-                    {isPlaying && (
-                      <div className="absolute left-0 top-0 h-full w-4 bg-gradient-to-r from-black to-transparent videos-lcd-fade-left" />
+                  <div
+                    className={cn(
+                      "font-geneva-12 text-[10px] transition-colors duration-300",
+                      isPlaying ? "text-[#ff00ff]" : "text-gray-600"
                     )}
-                    <div className="absolute right-0 top-0 h-full w-4 bg-gradient-to-l from-black to-transparent videos-lcd-fade-right" />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* All Controls in One Row */}
-            <div className="flex items-center justify-between videos-player-controls">
-              {/* Left Side: Playback Controls */}
-              <div className="flex items-center gap-2">
-                {isMacOSTheme ? (
-                  <div className="flex gap-0 aqua-select-group">
-                    <Button
-                      onClick={previousVideo}
-                      variant="aqua_select"
-                      disabled={videos.length === 0}
-                      className="aqua-compact font-chicago"
-                    >
-                      <span className="translate-y-[2px] inline-block">⏮</span>
-                    </Button>
-                    <Button
-                      onClick={togglePlay}
-                      variant="aqua_select"
-                      disabled={videos.length === 0}
-                      className="aqua-compact-wide font-chicago"
-                    >
-                      <span className="translate-y-[2px] inline-block">{isPlaying ? "⏸" : "▶"}</span>
-                    </Button>
-                    <Button
-                      onClick={nextVideo}
-                      variant="aqua_select"
-                      disabled={videos.length === 0}
-                      className="aqua-compact font-chicago"
-                    >
-                      <span className="translate-y-[2px] inline-block">⏭</span>
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex gap-0">
-                    <button
-                      onClick={previousVideo}
-                      className={cn(
-                        "flex items-center justify-center disabled:opacity-50 focus:outline-none",
-                        "hover:brightness-75 active:brightness-50"
+                  >
+                    <div>Time</div>
+                    <div className="text-xl">
+                      {formatTime(
+                        isDraggingSeek ? Math.floor(dragSeekTime) : elapsedTime
                       )}
-                      disabled={videos.length === 0}
-                    >
-                      <img
-                        src="/assets/videos/prev.png"
-                        alt="Previous"
-                        width={32}
-                        height={22}
-                        className="pointer-events-none"
-                      />
-                    </button>
-                    <button
-                      onClick={togglePlay}
-                      className={cn(
-                        "flex items-center justify-center disabled:opacity-50 focus:outline-none",
-                        "hover:brightness-75 active:brightness-50"
-                      )}
-                      disabled={videos.length === 0}
-                    >
-                      <img
-                        src={
-                          isPlaying
-                            ? "/assets/videos/pause.png"
-                            : "/assets/videos/play.png"
+                    </div>
+                  </div>
+                </div>
+                <div className="relative overflow-hidden flex-1 px-2">
+                  <div
+                    className={cn(
+                      "font-geneva-12 text-[10px] transition-colors duration-300 mb-[3px] pl-2",
+                      isPlaying ? "text-[#ff00ff]" : "text-gray-600"
+                    )}
+                  >
+                    Title
+                  </div>
+                  {videos.length > 0 && (
+                    <div className="relative overflow-hidden">
+                      <AnimatedTitle
+                        title={
+                          getCurrentVideo()?.artist
+                            ? `${getCurrentVideo()?.title} - ${
+                                getCurrentVideo()?.artist
+                              }`
+                            : getCurrentVideo()?.title || ""
                         }
-                        alt={isPlaying ? "Pause" : "Play"}
-                        width={50}
-                        height={22}
-                        className="pointer-events-none"
+                        direction={animationDirection}
+                        isPlaying={isPlaying}
                       />
-                    </button>
-                    <button
-                      onClick={nextVideo}
-                      className={cn(
-                        "flex items-center justify-center disabled:opacity-50 focus:outline-none",
-                        "hover:brightness-75 active:brightness-50"
+                      {/* Fade effects */}
+                      {isPlaying && (
+                        <div className="absolute left-0 top-0 h-full w-4 bg-gradient-to-r from-black to-transparent videos-lcd-fade-left" />
                       )}
-                      disabled={videos.length === 0}
-                    >
-                      <img
-                        src="/assets/videos/next.png"
-                        alt="Next"
-                        width={32}
-                        height={22}
-                        className="pointer-events-none"
-                      />
-                    </button>
-                  </div>
-                )}
-              </div>
+                      <div className="absolute right-0 top-0 h-full w-4 bg-gradient-to-l from-black to-transparent videos-lcd-fade-right" />
+                    </div>
+                  )}
+                </div>
 
-              {/* Right Side: Mode Switches */}
-              <div className="flex items-center gap-2">
-                {isMacOSTheme ? (
-                  <>
-                    <div className="flex gap-0 aqua-select-group">
-                      <Button
-                        onClick={toggleShuffle}
-                        variant="aqua_select"
-                        data-state={isShuffled ? "on" : "off"}
-                        className="px-2 aqua-compact font-geneva-12 !text-[11px]"
-                      >
-                        SHUFFLE
-                      </Button>
-                      <Button
-                        onClick={() => setLoopAll(!loopAll)}
-                        variant="aqua_select"
-                        data-state={loopAll ? "on" : "off"}
-                        className="px-2 aqua-compact font-geneva-12 !text-[11px]"
-                      >
-                        REPEAT
-                      </Button>
-                      <Button
-                        onClick={() => setLoopCurrent(!loopCurrent)}
-                        variant="aqua_select"
-                        data-state={loopCurrent ? "on" : "off"}
-                        className="px-2 aqua-compact font-geneva-12 !text-[11px]"
-                      >
-                        {loopCurrent ? "↺" : "→"}
-                      </Button>
-                    </div>
-                    <Button
-                      onClick={() => setIsAddDialogOpen(true)}
-                      variant="aqua_select"
-                      className="px-2 aqua-compact font-geneva-12 !text-[11px]"
-                    >
-                      ADD
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex gap-0">
-                      <Button
-                        onClick={toggleShuffle}
-                        variant="player"
-                        data-state={isShuffled ? "on" : "off"}
-                        className="h-[22px] px-2"
-                      >
-                        SHUFFLE
-                      </Button>
-                      <Button
-                        onClick={() => setLoopAll(!loopAll)}
-                        variant="player"
-                        data-state={loopAll ? "on" : "off"}
-                        className="h-[22px] px-2"
-                      >
-                        REPEAT
-                      </Button>
-                      <Button
-                        onClick={() => setLoopCurrent(!loopCurrent)}
-                        variant="player"
-                        data-state={loopCurrent ? "on" : "off"}
-                        className="h-[22px] px-2"
-                      >
-                        {loopCurrent ? "↺" : "→"}
-                      </Button>
-                    </div>
-                    <Button
-                      onClick={() => setIsAddDialogOpen(true)}
-                      variant="player"
-                      className="h-[22px] px-2"
-                    >
-                      ADD
-                    </Button>
-                  </>
-                )}
+                {/* All Controls in One Row */}
+                <div className="flex items-center justify-between videos-player-controls">
+                  {/* Left Side: Playback Controls */}
+                  <div className="flex items-center gap-2">
+                    {isMacOSTheme ? (
+                      <div className="flex gap-0 aqua-select-group">
+                        <Button
+                          onClick={previousVideo}
+                          variant="aqua_select"
+                          disabled={videos.length === 0}
+                          className="aqua-compact font-chicago"
+                        >
+                          <span className="translate-y-[2px] inline-block">⏮</span>
+                        </Button>
+                        <Button
+                          onClick={togglePlay}
+                          variant="aqua_select"
+                          disabled={videos.length === 0}
+                          className="aqua-compact-wide font-chicago"
+                        >
+                          <span className="translate-y-[2px] inline-block">{isPlaying ? "⏸" : "▶"}</span>
+                        </Button>
+                        <Button
+                          onClick={nextVideo}
+                          variant="aqua_select"
+                          disabled={videos.length === 0}
+                          className="aqua-compact font-chicago"
+                        >
+                          <span className="translate-y-[2px] inline-block">⏭</span>
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-0">
+                        <button
+                          onClick={previousVideo}
+                          className={cn(
+                            "flex items-center justify-center disabled:opacity-50 focus:outline-none",
+                            "hover:brightness-75 active:brightness-50"
+                          )}
+                          disabled={videos.length === 0}
+                        >
+                          <img
+                            src="/assets/videos/prev.png"
+                            alt="Previous"
+                            width={32}
+                            height={22}
+                            className="pointer-events-none"
+                          />
+                        </button>
+                        <button
+                          onClick={togglePlay}
+                          className={cn(
+                            "flex items-center justify-center disabled:opacity-50 focus:outline-none",
+                            "hover:brightness-75 active:brightness-50"
+                          )}
+                          disabled={videos.length === 0}
+                        >
+                          <img
+                            src={
+                              isPlaying
+                                ? "/assets/videos/pause.png"
+                                : "/assets/videos/play.png"
+                            }
+                            alt={isPlaying ? "Pause" : "Play"}
+                            width={50}
+                            height={22}
+                            className="pointer-events-none"
+                          />
+                        </button>
+                        <button
+                          onClick={nextVideo}
+                          className={cn(
+                            "flex items-center justify-center disabled:opacity-50 focus:outline-none",
+                            "hover:brightness-75 active:brightness-50"
+                          )}
+                          disabled={videos.length === 0}
+                        >
+                          <img
+                            src="/assets/videos/next.png"
+                            alt="Next"
+                            width={32}
+                            height={22}
+                            className="pointer-events-none"
+                          />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right Side: Mode Switches */}
+                  <div className="flex items-center gap-2">
+                    {isMacOSTheme ? (
+                      <>
+                        <div className="flex gap-0 aqua-select-group">
+                          <Button
+                            onClick={toggleShuffle}
+                            variant="aqua_select"
+                            data-state={isShuffled ? "on" : "off"}
+                            className="px-2 aqua-compact font-geneva-12 !text-[11px]"
+                          >
+                            SHUFFLE
+                          </Button>
+                          <Button
+                            onClick={() => setLoopAll(!loopAll)}
+                            variant="aqua_select"
+                            data-state={loopAll ? "on" : "off"}
+                            className="px-2 aqua-compact font-geneva-12 !text-[11px]"
+                          >
+                            REPEAT
+                          </Button>
+                          <Button
+                            onClick={() => setLoopCurrent(!loopCurrent)}
+                            variant="aqua_select"
+                            data-state={loopCurrent ? "on" : "off"}
+                            className="px-2 aqua-compact font-geneva-12 !text-[11px]"
+                          >
+                            {loopCurrent ? "↺" : "→"}
+                          </Button>
+                        </div>
+                        <Button
+                          onClick={() => setIsAddDialogOpen(true)}
+                          variant="aqua_select"
+                          className="px-2 aqua-compact font-geneva-12 !text-[11px]"
+                        >
+                          ADD
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex gap-0">
+                          <Button
+                            onClick={toggleShuffle}
+                            variant="player"
+                            data-state={isShuffled ? "on" : "off"}
+                            className="h-[22px] px-2"
+                          >
+                            SHUFFLE
+                          </Button>
+                          <Button
+                            onClick={() => setLoopAll(!loopAll)}
+                            variant="player"
+                            data-state={loopAll ? "on" : "off"}
+                            className="h-[22px] px-2"
+                          >
+                            REPEAT
+                          </Button>
+                          <Button
+                            onClick={() => setLoopCurrent(!loopCurrent)}
+                            variant="player"
+                            data-state={loopCurrent ? "on" : "off"}
+                            className="h-[22px] px-2"
+                          >
+                            {loopCurrent ? "↺" : "→"}
+                          </Button>
+                        </div>
+                        <Button
+                          onClick={() => setIsAddDialogOpen(true)}
+                          variant="player"
+                          className="h-[22px] px-2"
+                        >
+                          ADD
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
         <HelpDialog
           isOpen={isHelpDialogOpen}
