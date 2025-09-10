@@ -1,3 +1,6 @@
+---
+applyTo: '**/*'
+---
 # Copilot AI Coding Agent Instructions
 
 ## Overview

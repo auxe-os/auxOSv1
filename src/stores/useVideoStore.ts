@@ -11,7 +11,14 @@ export interface Video {
 // Strongly type the plain state slice returned by getInitialState
 type VideoStateData = Pick<
   VideoStoreState,
-  "videos" | "currentVideoId" | "loopAll" | "loopCurrent" | "isShuffled" | "isPlaying"
+  | "videos"
+  | "currentVideoId"
+  | "loopAll"
+  | "loopCurrent"
+  | "isShuffled"
+  | "isPlaying"
+  | "isPlaylistVisible"
+  | "volume"
 >;
 
 export const DEFAULT_VIDEOS: Video[] = [
@@ -138,6 +145,8 @@ interface VideoStoreState {
   loopCurrent: boolean;
   isShuffled: boolean;
   isPlaying: boolean;
+  isPlaylistVisible: boolean;
+  volume: number;
   // derived caches (not persisted)
   videoIndexById: Record<string, number>;
   videoById: Record<string, Video>;
@@ -149,6 +158,8 @@ interface VideoStoreState {
   setIsShuffled: (val: boolean) => void;
   togglePlay: () => void;
   setIsPlaying: (val: boolean) => void;
+  togglePlaylist: () => void;
+  setVolume: (volume: number) => void;
   // derived state helpers
   getCurrentIndex: () => number;
   getCurrentVideo: () => Video | null;
@@ -163,6 +174,8 @@ const getInitialState = (): VideoStateData => ({
   loopCurrent: false,
   isShuffled: false,
   isPlaying: false,
+  isPlaylistVisible: true,
+  volume: 1,
 });
 
 // Internal helper to build lookup caches
@@ -257,6 +270,9 @@ export const useVideoStore = create<VideoStoreState>()(
       setIsShuffled: (val) => set({ isShuffled: val }),
       togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
       setIsPlaying: (val) => set({ isPlaying: val }),
+      togglePlaylist: () =>
+        set((state) => ({ isPlaylistVisible: !state.isPlaylistVisible })),
+      setVolume: (volume) => set({ volume }),
 
       // Derived state helpers
       getCurrentIndex: () => {
@@ -289,6 +305,9 @@ export const useVideoStore = create<VideoStoreState>()(
         loopAll: state.loopAll,
         loopCurrent: state.loopCurrent,
         isShuffled: state.isShuffled,
+        isPlaylistVisible: state.isPlaylistVisible,
+        isPlaying: state.isPlaying,
+        volume: state.volume,
       }),
       // After rehydration, ensure the currentVideoId still exists in the videos list
       onRehydrateStorage: () => () => {

@@ -914,12 +914,27 @@ export function VideosAppComponent({
   };
 
   const handleVideoEnd = () => {
+    const currentIndex = getCurrentIndex();
+    // If looping the current track, restart it
     if (loopCurrent) {
       playerRef.current?.seekTo(0);
       setIsPlaying(true);
-    } else {
-      nextVideo();
+      return;
     }
+
+    // If there is a next video, advance. This prevents YouTube end-screen
+    // thumbnails from appearing because we immediately transition.
+    if (currentIndex < videos.length - 1) {
+      nextVideo();
+      return;
+    }
+
+    // No next video and not looping: show static and play tape sound instead of letting
+    // YouTube surface suggested videos/end-screen overlays.
+    lastActionRef.current = "transition";
+    setShowStaticTransition(true);
+    playVideoTape();
+    setIsPlaying(false);
   };
 
   const handleProgress = (state: { playedSeconds: number }) => {
@@ -1104,6 +1119,9 @@ export function VideosAppComponent({
                           modestbranding: 1,
                           rel: 0,
                           showinfo: 0,
+                          controls: 0,
+                          enablejsapi: 1,
+                          origin: typeof window !== 'undefined' ? window.location.origin : undefined,
                           iv_load_policy: 3,
                           fs: 0,
                           disablekb: 1,
@@ -1125,7 +1143,9 @@ export function VideosAppComponent({
                           delay: 0.1,
                           ease: [0.4, 0, 0.2, 1],
                         }}
-                        className="absolute inset-0 z-10"
+                        // Use very large z-index and enable pointer events so the overlay
+                        // sits above YouTube's in-iframe suggested thumbnails and blocks them
+                        className="absolute inset-0 z-[9999] pointer-events-auto"
                       >
                         <WhiteNoiseEffect immediate={!isPlaying || showStaticTransition} />
                       </motion.div>
@@ -1133,7 +1153,7 @@ export function VideosAppComponent({
                   </AnimatePresence>
                   {/* Pointer-interaction overlay for play/pause + swipe-to-show-seekbar (z-20) */}
                   <div
-                    className="absolute inset-0 cursor-pointer z-20"
+                    className="absolute inset-0 cursor-pointer z-[10001]"
                     aria-label={isPlaying ? "Pause" : "Play"}
                     onPointerDown={handleOverlayPointerDown}
                     onPointerMove={handleOverlayPointerMove}
@@ -1173,65 +1193,66 @@ export function VideosAppComponent({
                 
                 {/* Discrete UI Toggle Button - Always accessible */}
                 <motion.button
-                  initial={{ opacity: 0, scale: 0.8, y: 20 }}
-                  animate={{ 
-                    opacity: isVideoHovered || !isUiVisible ? 1 : 0.7,
+                  role="button"
+                  aria-pressed={isUiVisible}
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{
+                    opacity: isVideoHovered || !isUiVisible ? 1 : 0.85,
                     scale: 1,
-                    y: 0
+                    y: 0,
                   }}
-                  whileHover={{ 
-                    opacity: 1, 
-                    scale: 1.08,
-                    backgroundColor: "rgba(0, 0, 0, 0.8)",
-                    borderColor: "rgba(255, 255, 255, 0.4)"
-                  }}
-                  whileTap={{ scale: 0.92 }}
-                  transition={{ 
-                    type: "spring",
-                    stiffness: 400,
-                    damping: 25,
-                    mass: 0.6
-                  }}
+                  whileHover={{ scale: 1.06 }}
+                  whileTap={{ scale: 0.96 }}
+                  transition={{ type: "spring", stiffness: 360, damping: 22 }}
                   className={cn(
-                    "absolute z-40 bg-black/60 backdrop-blur-md border border-white/25 rounded-xl text-white shadow-xl flex items-center justify-center transition-all duration-300",
-                    isUiVisible 
-                      ? "bottom-3 right-3 w-9 h-9" 
-                      : "bottom-5 right-5 w-11 h-11"
+                    // base placement + responsive hit area
+                    "absolute rounded-xl shadow-xl flex items-center justify-center transition-all duration-200",
+                    // responsive size & placement
+                    isUiVisible
+                      ? "bottom-3 right-3 w-9 h-9 md:bottom-4 md:right-4 md:w-10 md:h-10 lg:w-11 lg:h-11"
+                      : "bottom-4 right-4 w-11 h-11 md:bottom-5 md:right-5 md:w-12 md:h-12 lg:w-14 lg:h-14",
+                    // theme-aware styles
+                    isMacOSTheme
+                      ? "bg-black/60 backdrop-blur-md text-white border border-white/25"
+                      : isXpTheme
+                      ? "bg-[#e8e8e8] text-black border border-black/10"
+                      : "bg-white/6 text-white border border-white/20"
                   )}
                   onClick={(e) => {
                     e.stopPropagation();
-                    setIsUiVisible(prev => !prev);
+                    lastActionRef.current = "userToggle";
+                    setIsUiVisible((prev) => !prev);
                     playButtonClick();
                     showStatus(isUiVisible ? "CONTROLS HIDDEN" : "CONTROLS SHOWN");
+                    // clear the user action marker shortly after
+                    setTimeout(() => {
+                      if (lastActionRef.current === "userToggle") lastActionRef.current = null;
+                    }, 300);
                   }}
                   aria-label={isUiVisible ? "Hide Controls" : "Show Controls"}
                   title={isUiVisible ? "Hide Controls" : "Show Controls"}
                 >
                   <motion.div
                     animate={{ rotate: isUiVisible ? 0 : 180 }}
-                    transition={{ 
-                      type: "spring",
-                      stiffness: 250,
-                      damping: 20 
-                    }}
+                    transition={{ type: "spring", stiffness: 260, damping: 20 }}
                     className="flex items-center justify-center"
                   >
-                    <motion.svg 
-                      width={isUiVisible ? "16" : "18"} 
-                      height={isUiVisible ? "16" : "18"} 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      strokeWidth="2.5"
-                      animate={{ 
-                        scale: isUiVisible ? 0.9 : 1.1 
-                      }}
-                      transition={{ duration: 0.2 }}
+                    <motion.svg
+                      className={cn(
+                        "text-current",
+                        isUiVisible ? "w-4 h-4 md:w-5 md:h-5" : "w-5 h-5 md:w-6 md:h-6"
+                      )}
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2.5}
+                      animate={{ scale: isUiVisible ? 0.95 : 1.05 }}
+                      transition={{ duration: 0.18 }}
                     >
                       {isUiVisible ? (
-                        <path d="M6 9l6 6 6-6"/>
+                        <path d="M6 9l6 6 6-6" />
                       ) : (
-                        <path d="M18 15l-6-6-6 6"/>
+                        <path d="M18 15l-6-6-6 6" />
                       )}
                     </motion.svg>
                   </motion.div>

@@ -16,8 +16,10 @@ import { StartMenu } from "./StartMenu";
 import { useAppStoreShallow } from "@/stores/helpers";
 import { Slider } from "@/components/ui/slider";
 import { Volume1, Volume2, VolumeX, Settings, ChevronUp } from "lucide-react";
-import { useSound, Sounds } from "@/hooks/useSound";
+import { Sounds } from "@/hooks/useSound";
 import { useThemeStore } from "@/stores/useThemeStore";
+import { useVideoStore } from "@/stores/useVideoStore";
+
 import { getAppIconPath, appRegistry } from "@/config/appRegistry";
 import { ThemedIcon } from "@/components/shared/ThemedIcon";
 
@@ -146,6 +148,7 @@ function DefaultMenuItems() {
   const launchApp = useLaunchApp();
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
+  const { play: playSound } = Sounds.MENU_SELECT;
 
   const handleLaunchFinder = (path: string) => {
     launchApp("finder", { initialPath: path });
@@ -445,7 +448,7 @@ function VolumeControl() {
     masterVolume: s.masterVolume,
     setMasterVolume: s.setMasterVolume,
   }));
-  const { play: playVolumeChangeSound } = useSound(Sounds.VOLUME_CHANGE);
+  const { play: playVolumeChangeSound } = Sounds.VOLUME_CHANGE;
   const launchApp = useLaunchApp();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const currentTheme = useThemeStore((state) => state.current);
@@ -753,7 +756,7 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
                       boxShadow:
                         currentTheme === "xp"
                           ? "2px 2px 5px rgba(255, 255, 255, 0.267) inset"
-                          : "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf",
+                          : "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px #dfdfdf, inset 2px 2px grey", // Windows 98 inset
                       transition: "all 0.1s ease",
                     }}
                     onMouseEnter={(e) => {
@@ -782,7 +785,7 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
                       } else if (currentTheme === "win98") {
                         // return to raised hover state
                         e.currentTarget.style.boxShadow =
-                          "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf";
+                          "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px #dfdfdf, inset 2px 2px grey";
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -791,7 +794,7 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
                         e.currentTarget.style.borderColor = "#255be1";
                       } else if (currentTheme === "win98") {
                         e.currentTarget.style.boxShadow =
-                          "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf";
+                          "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px #dfdfdf, inset 2px 2px grey";
                       }
                     }}
                   >
