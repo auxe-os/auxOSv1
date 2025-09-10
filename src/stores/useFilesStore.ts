@@ -739,31 +739,35 @@ export const useFilesStore = create<FilesStoreState>()(
                 const files = Array.isArray(data.files) ? data.files : [];
 
                 // Narrowly-typed filters
-                const hiddenDirs = dirs.filter((d: { path?: string }) => typeof d.path === "string" && d.path.startsWith("/Hidden"));
-                const hiddenFiles = files.filter((f: { path?: string }) => typeof f.path === "string" && f.path.startsWith("/Hidden"));
+                const hiddenDirs = dirs.filter(
+                  (d: any): d is FileSystemItemData =>
+                    typeof d.path === "string" && d.path.startsWith("/Hidden")
+                );
+                const hiddenFiles = files.filter(
+                  (f: any): f is FileSystemItemData =>
+                    typeof f.path === "string" && f.path.startsWith("/Hidden")
+                );
 
                 if (hiddenDirs.length === 0 && hiddenFiles.length === 0) {
                   return; // nothing to add
                 }
 
-                const now = Date.now();
-
                 // Use the store's addItem method to ensure UUIDs/timestamps are created consistently
-                hiddenDirs.forEach((dir) => {
+                hiddenDirs.forEach((dir: FileSystemItemData) => {
                   // ensure minimal shape expected by addItem
                   state.addItem({
-                    path: dir.path,
-                    name: dir.name || dir.path.split("/").pop() || "Hidden",
+                    path: dir.path!,
+                    name: dir.name || dir.path!.split("/").pop() || "Hidden",
                     isDirectory: true,
                     type: dir.type || "directory",
                     icon: dir.icon,
                   });
                 });
 
-                hiddenFiles.forEach((file) => {
+                hiddenFiles.forEach((file: FileSystemItemData) => {
                   state.addItem({
-                    path: file.path,
-                    name: file.name || file.path.split("/").pop() || "file",
+                    path: file.path!,
+                    name: file.name || file.path!.split("/").pop() || "file",
                     isDirectory: false,
                     type: file.type || undefined,
                     icon: file.icon,
@@ -772,7 +776,7 @@ export const useFilesStore = create<FilesStoreState>()(
 
                 // After adding metadata, persist default contents into IndexedDB for added files.
                 // We pass the raw file entries (typed) and the current items snapshot so UUIDs are available.
-                await saveDefaultContents(hiddenFiles as unknown as FileSystemItemData[], { ...state.items });
+                await saveDefaultContents(hiddenFiles, { ...state.items });
 
                 console.log("[FilesStore:onRehydrateStorage] Patched /Hidden entries into files store during rehydrate.");
               } catch (err) {

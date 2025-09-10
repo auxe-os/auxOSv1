@@ -8,6 +8,12 @@ export interface Video {
   artist?: string;
 }
 
+// Strongly type the plain state slice returned by getInitialState
+type VideoStateData = Pick<
+  VideoStoreState,
+  "videos" | "currentVideoId" | "loopAll" | "loopCurrent" | "isShuffled" | "isPlaying"
+>;
+
 export const DEFAULT_VIDEOS: Video[] = [
   {
     id: "0pP3ZjMDzF4",
@@ -58,28 +64,28 @@ export const DEFAULT_VIDEOS: Video[] = [
     artist: "FUTURE",
   },
   {
-    id: "TdJjqApa3e0",
-    url: "https://youtu.be/TdJjqApa3e0",
-    title: "Mr. Me Too",
-    artist: "Clipse",
+    id: "rKFYeod_1Fo",
+    url: "https://youtu.be/rKFYeod_1Fo",
+    title: "Cops & Robbers",
+    artist: "Skepta",
   },
   {
-    id: "b5P3QDm61go",
-    url: "https://youtu.be/b5P3QDm61go",
-    title: 'iMac G4 "Lamp" Ad (2002)',
-    artist: "Apple Computer",
+    id: "3TtEay45sE8",
+    url: "https://youtu.be/3TtEay45sE8",
+    title: 'Lost All My Feelings',
+    artist: "SahBabii",
   },
   {
-    id: "TDVYfgRoVAo",
-    url: "https://youtu.be/TDVYfgRoVAo",
-    title: "iMac G4 Introduction (2002)",
-    artist: "Steve Jobs",
+    id: "CHRiakgTjuk",
+    url: "https://youtu.be/CHRiakgTjuk",
+    title: "Smooth Jazz",
+    artist: "Skepta",
   },
   {
-    id: "9AJ1oSXlzCo",
-    url: "https://youtu.be/9AJ1oSXlzCo",
-    title: "iPod Nano Ad (2005)",
-    artist: "Apple Computer",
+    id: "4duftbSZkxs",
+    url: "https://youtu.be/4duftbSZkxs",
+    title: "namesbliss, DeeRiginal, Pozzy, Saiming and Melvillous w/ Sir Spyro",
+    artist: "BBC 1 Xtra",
   },
   {
     id: "VQKMoT-6XSg",
@@ -147,7 +153,7 @@ interface VideoStoreState {
 
 const CURRENT_VIDEO_STORE_VERSION = 8; // Clean ID-based version
 
-const getInitialState = () => ({
+const getInitialState = (): VideoStateData => ({
   videos: DEFAULT_VIDEOS,
   currentVideoId: DEFAULT_VIDEOS.length > 0 ? DEFAULT_VIDEOS[0].id : null,
   loopAll: true,
@@ -156,26 +162,60 @@ const getInitialState = () => ({
   isPlaying: false,
 });
 
+// Capture store setters/getters for use in lifecycle callbacks that don't receive them directly
+let __setRef: ((partial: Partial<VideoStoreState> | ((state: VideoStoreState) => Partial<VideoStoreState>)) => void) | undefined;
+let __getRef: (() => VideoStoreState) | undefined;
+
 export const useVideoStore = create<VideoStoreState>()(
   persist(
     (set, get) => ({
+      // keep refs updated for use in onRehydrateStorage
+      ...(function () {
+        __setRef = set;
+        __getRef = get;
+        return {} as Record<string, never>;
+      })(),
       ...getInitialState(),
 
       setVideos: (videosOrUpdater) => {
         set((state) => {
-          const newVideos =
+          const maybeNewVideos =
             typeof videosOrUpdater === "function"
               ? (videosOrUpdater as (prev: Video[]) => Video[])(state.videos)
               : videosOrUpdater;
 
-          // Validate currentVideoId when videos change
+          const newVideos = Array.isArray(maybeNewVideos) ? maybeNewVideos : [];
+          if (!Array.isArray(maybeNewVideos)) {
+            // eslint-disable-next-line no-console
+            console.warn("useVideoStore.setVideos: non-array provided; falling back to empty list");
+          }
+
+          // Validate currentVideoId when videos change (preserve null if explicitly unset)
           let currentVideoId = state.currentVideoId;
-          if (
-            currentVideoId &&
-            !newVideos.find((v) => v.id === currentVideoId)
-          ) {
+          if (currentVideoId && !newVideos.find((v) => v.id === currentVideoId)) {
             currentVideoId = newVideos.length > 0 ? newVideos[0].id : null;
           }
+
+          // Soft URL validation (non-intrusive): log any non-http(s) URL and duplicate IDs to aid debugging
+          try {
+            const badUrl = newVideos.filter((v) => !/^https?:\/\//i.test(v.url));
+            if (badUrl.length) {
+              // eslint-disable-next-line no-console
+              console.warn(
+                "useVideoStore: videos with non-http(s) URL detected:",
+                badUrl.map((v) => v.id)
+              );
+            }
+            const idCounts = newVideos.reduce<Record<string, number>>((acc, v) => {
+              acc[v.id] = (acc[v.id] || 0) + 1;
+              return acc;
+            }, {});
+            const dupes = Object.keys(idCounts).filter((k) => idCounts[k] > 1);
+            if (dupes.length) {
+              // eslint-disable-next-line no-console
+              console.warn("useVideoStore: duplicate video ids detected:", dupes);
+            }
+          } catch {}
 
           return {
             videos: newVideos,
@@ -230,6 +270,18 @@ export const useVideoStore = create<VideoStoreState>()(
         loopCurrent: state.loopCurrent,
         isShuffled: state.isShuffled,
       }),
+      // After rehydration, ensure the currentVideoId still exists in the videos list
+      onRehydrateStorage: () => () => {
+        try {
+          const vids: Video[] = __getRef?.().videos ?? [];
+          const cur: string | null = __getRef?.().currentVideoId ?? null;
+          if (cur && !vids.some((v) => v.id === cur)) {
+            __setRef?.({ currentVideoId: vids.length ? vids[0].id : null });
+          }
+        } catch {
+          // no-op
+        }
+      },
     }
   )
 );
