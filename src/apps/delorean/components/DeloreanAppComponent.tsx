@@ -16,7 +16,7 @@ export const DeloreanAppComponent: React.FC<AppProps<DeloreanInitialData>> = ({
   instanceId,
   initialData,
 }) => {
-  const defaultUrl = "https://delorean-79538617613.us-west1.run.app";
+  const defaultUrl = "https://cd-fluid-triangle.vercel.app/";
   const fallbackUrl = "https://github.com/auxe-os/auxOSv1"; // Fallback if main site is down
   const currentUrl = initialData?.url || defaultUrl;
   

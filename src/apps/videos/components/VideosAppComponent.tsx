@@ -40,20 +40,9 @@ function AnimatedDigit({
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.div
           key={digit}
-          initial={{ y: yOffset, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: yOffset, opacity: 0 }}
-          transition={{
-            y: {
-              type: "spring",
-              stiffness: 300,
-              damping: 30,
-            },
-            opacity: {
-              duration: 0.2,
-            },
-          }}
-          className="absolute inset-0 flex justify-center"
+          className="absolute w-full h-full"
+          style={{ y: yOffset }}
+          transition={{ duration: 0.3 }}
         >
           {digit}
         </motion.div>
@@ -164,10 +153,10 @@ function AnimatedTitle({
   );
 }
 
-function WhiteNoiseEffect() {
+function WhiteNoiseEffect({ immediate = false }: { immediate?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number>();
-  const [brightness, setBrightness] = useState(0);
+  const [brightness, setBrightness] = useState(immediate ? 1 : 0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -177,6 +166,12 @@ function WhiteNoiseEffect() {
     if (!ctx) return;
 
     const drawNoise = () => {
+      // Ensure canvas has valid dimensions before creating ImageData
+      if (canvas.width <= 0 || canvas.height <= 0) {
+        animationFrameRef.current = requestAnimationFrame(drawNoise);
+        return;
+      }
+
       const imageData = ctx.createImageData(canvas.width, canvas.height);
       const data = imageData.data;
 
@@ -203,15 +198,24 @@ function WhiteNoiseEffect() {
     };
 
     const resizeCanvas = () => {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
+      const rect = canvas.getBoundingClientRect();
+      const width = Math.max(1, Math.floor(rect.width));
+      const height = Math.max(1, Math.floor(rect.height));
+      
+      canvas.width = width;
+      canvas.height = height;
     };
 
-    resizeCanvas();
+    // Initial resize with a small delay to ensure parent has dimensions
+    const timeoutId = setTimeout(() => {
+      resizeCanvas();
+      drawNoise();
+    }, 50);
+
     window.addEventListener("resize", resizeCanvas);
-    drawNoise();
 
     return () => {
+      clearTimeout(timeoutId);
       window.removeEventListener("resize", resizeCanvas);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -219,8 +223,9 @@ function WhiteNoiseEffect() {
     };
   }, [brightness]);
 
-  // Animate brightness
+  // Animate brightness unless immediate is requested
   useEffect(() => {
+    if (immediate) return; // already at full brightness
     const duration = 1000; // 1 second animation
     const startTime = Date.now();
     const startBrightness = brightness;
@@ -240,7 +245,7 @@ function WhiteNoiseEffect() {
     };
 
     animate();
-  }, []);
+  }, [immediate]);
 
   return (
     <canvas
@@ -350,10 +355,15 @@ export function VideosAppComponent({
   const [isVideoHovered, setIsVideoHovered] = useState(false);
   const [isDraggingSeek, setIsDraggingSeek] = useState(false);
   const [dragSeekTime, setDragSeekTime] = useState(0);
+  const [showStaticTransition, setShowStaticTransition] = useState(false);
 
   // Ref to detect paused -> playing transitions so we can auto-show the SeekBar
   const prevIsPlayingRef = useRef(isPlaying);
+  // Separate ref used solely for pause detection so other effects don't stomp it
+  const prevIsPlayingForPauseRef = useRef(isPlaying);
   const autoShowHoverResetRef = useRef<NodeJS.Timeout | null>(null);
+  // Track the last high-level action so we don't double-play the static sound
+  const lastActionRef = useRef<"userToggle" | "transition" | null>(null);
 
   useEffect(() => {
     const wasPlaying = prevIsPlayingRef.current;
@@ -503,7 +513,20 @@ export function VideosAppComponent({
     direction: "next" | "prev"
   ) => {
     setAnimationDirection(direction);
-    safeSetCurrentVideoId(videoId);
+    // Mark transition so pause-effect knows this is intentional
+    lastActionRef.current = "transition";
+    // Show brief transition static and play tape sound
+    setShowStaticTransition(true);
+    playVideoTape();
+    setIsPlaying(false);
+
+    setTimeout(() => {
+      safeSetCurrentVideoId(videoId);
+      setShowStaticTransition(false);
+      setIsPlaying(true);
+      // clear the marker shortly after transition completes
+      lastActionRef.current = null;
+    }, 400);
   };
 
   const nextVideo = () => {
@@ -521,7 +544,6 @@ export function VideosAppComponent({
       showStatus("NEXT ⏭");
       updateCurrentVideoId(videos[currentIndex + 1].id, "next");
     }
-    setIsPlaying(true);
   };
 
   const previousVideo = () => {
@@ -539,8 +561,20 @@ export function VideosAppComponent({
       showStatus("PREV ⏮");
       updateCurrentVideoId(videos[currentIndex - 1].id, "prev");
     }
-    setIsPlaying(true);
   };
+
+  // Play static sound when the player is paused by external means (e.g. iframe/player UI)
+  useEffect(() => {
+    const wasPlaying = prevIsPlayingForPauseRef.current;
+    if (wasPlaying && !isPlaying) {
+      // If the pause wasn't triggered by our own toggle or a transition, play tape sound
+      if (lastActionRef.current !== "userToggle" && lastActionRef.current !== "transition") {
+        playVideoTape();
+      }
+    }
+    prevIsPlayingForPauseRef.current = isPlaying;
+    // We intentionally only care about isPlaying changes
+  }, [isPlaying]);
 
   // Reset elapsed time when changing tracks
   useEffect(() => {
@@ -863,9 +897,15 @@ export function VideosAppComponent({
   }, [processVideoId, bringToForeground]);
 
   const togglePlay = () => {
+    // Mark that this pause/play was user-initiated so external pause-effect doesn't re-fire tape sound
+    lastActionRef.current = "userToggle";
     togglePlayStore();
     showStatus(!isPlaying ? "PLAY ▶" : "PAUSED ⏸");
     playVideoTape();
+    // clear the user action marker shortly after to allow later external pauses to play sound
+    setTimeout(() => {
+      if (lastActionRef.current === "userToggle") lastActionRef.current = null;
+    }, 250);
   };
 
   const toggleShuffle = () => {
@@ -1075,7 +1115,7 @@ export function VideosAppComponent({
                   />
                   {/* White noise effect (z-10) */}
                   <AnimatePresence>
-                    {!isPlaying && (
+                    {(!isPlaying || showStaticTransition) && (
                       <motion.div
                         initial={{ opacity: 0, scale: 1.15 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -1087,7 +1127,7 @@ export function VideosAppComponent({
                         }}
                         className="absolute inset-0 z-10"
                       >
-                        <WhiteNoiseEffect />
+                        <WhiteNoiseEffect immediate={!isPlaying || showStaticTransition} />
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -1102,23 +1142,100 @@ export function VideosAppComponent({
                   />
                 </div>
                 {/* SeekBar positioned at the bottom (z-30) - only show when UI is visible */}
-                {isUiVisible && (
-                  <div className="absolute bottom-0 left-0 right-0 z-30">
-                    <SeekBar
-                      duration={duration}
-                      currentTime={playedSeconds}
-                      onSeek={handleSeek}
-                      isPlaying={isPlaying}
-                      isHovered={isVideoHovered}
-                      onDragChange={(isDragging, seekTime) => {
-                        setIsDraggingSeek(isDragging);
-                        if (seekTime !== undefined) {
-                          setDragSeekTime(seekTime);
-                        }
+                <AnimatePresence>
+                  {isUiVisible && (
+                    <motion.div 
+                      className="absolute bottom-0 left-0 right-0 z-30"
+                      initial={{ y: "100%", opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: "100%", opacity: 0 }}
+                      transition={{ 
+                        duration: 0.3, 
+                        ease: [0.4, 0, 0.2, 1] 
                       }}
-                    />
-                  </div>
-                )}
+                    >
+                      <SeekBar
+                        duration={duration}
+                        currentTime={playedSeconds}
+                        onSeek={handleSeek}
+                        isPlaying={isPlaying}
+                        isHovered={isVideoHovered}
+                        onDragChange={(isDragging, seekTime) => {
+                          setIsDraggingSeek(isDragging);
+                          if (seekTime !== undefined) {
+                            setDragSeekTime(seekTime);
+                          }
+                        }}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                
+                {/* Discrete UI Toggle Button - Always accessible */}
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                  animate={{ 
+                    opacity: isVideoHovered || !isUiVisible ? 1 : 0.7,
+                    scale: 1,
+                    y: 0
+                  }}
+                  whileHover={{ 
+                    opacity: 1, 
+                    scale: 1.08,
+                    backgroundColor: "rgba(0, 0, 0, 0.8)",
+                    borderColor: "rgba(255, 255, 255, 0.4)"
+                  }}
+                  whileTap={{ scale: 0.92 }}
+                  transition={{ 
+                    type: "spring",
+                    stiffness: 400,
+                    damping: 25,
+                    mass: 0.6
+                  }}
+                  className={cn(
+                    "absolute z-40 bg-black/60 backdrop-blur-md border border-white/25 rounded-xl text-white shadow-xl flex items-center justify-center transition-all duration-300",
+                    isUiVisible 
+                      ? "bottom-3 right-3 w-9 h-9" 
+                      : "bottom-5 right-5 w-11 h-11"
+                  )}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsUiVisible(prev => !prev);
+                    playButtonClick();
+                    showStatus(isUiVisible ? "CONTROLS HIDDEN" : "CONTROLS SHOWN");
+                  }}
+                  aria-label={isUiVisible ? "Hide Controls" : "Show Controls"}
+                  title={isUiVisible ? "Hide Controls" : "Show Controls"}
+                >
+                  <motion.div
+                    animate={{ rotate: isUiVisible ? 0 : 180 }}
+                    transition={{ 
+                      type: "spring",
+                      stiffness: 250,
+                      damping: 20 
+                    }}
+                    className="flex items-center justify-center"
+                  >
+                    <motion.svg 
+                      width={isUiVisible ? "16" : "18"} 
+                      height={isUiVisible ? "16" : "18"} 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2.5"
+                      animate={{ 
+                        scale: isUiVisible ? 0.9 : 1.1 
+                      }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      {isUiVisible ? (
+                        <path d="M6 9l6 6 6-6"/>
+                      ) : (
+                        <path d="M18 15l-6-6-6 6"/>
+                      )}
+                    </motion.svg>
+                  </motion.div>
+                </motion.button>
                 {/* Status Display (z-40) - moved outside oversized container */}
                 <AnimatePresence>
                   {statusMessage && (
@@ -1148,13 +1265,21 @@ export function VideosAppComponent({
           </div>
 
           {/* Retro CD Player Controls - hide when UI is toggled off */}
-          {isUiVisible && (
-            <div
-              className={cn(
-                "p-4 bg-[#2a2a2a] border-t border-[#3a3a3a] flex flex-col gap-4",
-                "os-toolbar-texture"
-              )}
-            >
+          <AnimatePresence>
+            {isUiVisible && (
+              <motion.div
+                className={cn(
+                  "p-4 bg-[#2a2a2a] border-t border-[#3a3a3a] flex flex-col gap-4",
+                  "os-toolbar-texture"
+                )}
+                initial={{ y: "100%", opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: "100%", opacity: 0 }}
+                transition={{ 
+                  duration: 0.3, 
+                  ease: [0.4, 0, 0.2, 1] 
+                }}
+              >
               {/* LCD Display */}
               <div className="videos-lcd bg-black py-2 px-4 flex items-center justify-between w-full">
                 <div className="flex items-center gap-8">
@@ -1381,8 +1506,9 @@ export function VideosAppComponent({
                   </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
           )}
+        </AnimatePresence>
         </div>
         <HelpDialog
           isOpen={isHelpDialogOpen}

@@ -88,10 +88,10 @@ export const DEFAULT_VIDEOS: Video[] = [
     artist: "BBC 1 Xtra",
   },
   {
-    id: "VQKMoT-6XSg",
-    url: "https://youtu.be/VQKMoT-6XSg?si=XzKqJ_mnXDH_P4zH",
-    title: "iPhone Introduction (2007)",
-    artist: "Steve Jobs",
+    id: "qSRjlIko0VY",
+    url: "https://youtu.be/qSRjlIko0VY",
+    title: "Oblig with namesbliss, Melvillous & Saiming",
+    artist: "Rinse FM",
   },
   {
     id: "dMBW1G4U54g",
